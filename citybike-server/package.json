@@ -11,6 +11,8 @@
   "dependencies": {
     "axios": "^0.18.1",
     "express": "^4.16.4",
+    "node-cron": "^3.0.0",
+    "nodemon": "^2.0.12",
     "socket.io": "^2.1.1"
   }
 }
