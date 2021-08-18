@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import socketIOClient from "socket.io-client";
 import { Map, TileLayer, Marker, Popup } from "react-leaflet";
+import { iconStation } from "./StationIcons";
 
 class App extends Component {
   constructor() {
@@ -30,7 +31,12 @@ class App extends Component {
     return (
       <div className="map">
         <h1> City Bikes in Miami </h1>
-        <Map center={position} zoom={this.state.zoom}>
+        <Map
+          center={position}
+          zoom={this.state.zoom}
+          maxZoom={19}
+          onZoomEnd={(map) => this.setState({ zoom: map.target._zoom })}
+        >
           <TileLayer
             attribution='&amp;copy <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -45,7 +51,11 @@ class App extends Component {
               name,
               extra,
             }) => (
-              <Marker position={[latitude, longitude]} key={id}>
+              <Marker
+                position={[latitude, longitude]}
+                key={id}
+                icon={iconStation(this.state.zoom)}
+              >
                 <Popup>
                   {name} <br />
                   Free Bikes: {free_bikes} <br />
