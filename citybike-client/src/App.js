@@ -14,6 +14,10 @@ class App extends Component {
       lng: -80.191788,
       zoom: 12,
       historical: false,
+      timelapse: false,
+      timelapseIndex: 0,
+      timelapseLimit: 0,
+      paused: false,
     };
   }
   componentDidMount() {
@@ -22,20 +26,88 @@ class App extends Component {
     socket.emit("ready");
     socket.on("getMiamiAvailability", (data) => {
       this.setState({ response: data });
-      console.log(data.network.stations);
+      //console.log(data.network.stations);
     });
     socket.on("getHistoricalAvailability", (data) => {
       this.setState({ historical: data });
-      console.log(data);
+      //console.log(data);
     });
   }
+
+  handleClick() {
+    const { timelapse } = this.state;
+    this.setState((prevState) => ({
+      timelapse: !prevState.timelapse,
+      timelapseIndex: 0,
+      timelapseLimit: prevState.historical ? prevState.historical.length : 0,
+      paused: false,
+    }));
+    if (!timelapse) {
+      this.myInterval = setInterval(() => {
+        this.setState((prevState) => ({
+          timelapseIndex: !prevState.paused
+            ? prevState.timelapseIndex + 1 < prevState.timelapseLimit
+              ? prevState.timelapseIndex + 1
+              : 0
+            : prevState.timelapseIndex,
+        }));
+      }, 2000);
+    } else {
+      clearInterval(this.myInterval);
+    }
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.myInterval);
+  }
+
   render() {
-    const { response } = this.state;
-    const stations = response ? response.network.stations : [];
+    const {
+      response,
+      historical,
+      timelapse,
+      timelapseIndex,
+      paused,
+    } = this.state;
+    const stations =
+      timelapse && historical
+        ? historical[timelapseIndex].data.network.stations
+        : response
+        ? response.network.stations
+        : [];
     const position = [this.state.lat, this.state.lng];
     return (
       <div className="map">
         <h1> City Bikes in Miami </h1>
+        <div>
+          {timelapse && (
+            <>
+              <p>
+                At Miami (GMT-4) time:{" "}
+                {new Date(historical[timelapseIndex].timestamp).toLocaleString(
+                  "en-US",
+                  { timeZone: "Etc/GMT+4" }
+                )}
+              </p>
+              <button
+                onClick={() => {
+                  this.setState((prevState) => ({
+                    paused: !prevState.paused,
+                  }));
+                }}
+              >
+                {paused ? "Unpause timelapse" : "Pause timelapse"}
+              </button>
+            </>
+          )}
+          <button
+            onClick={() => {
+              this.handleClick();
+            }}
+          >
+            {timelapse ? "Back to current time" : "See 24 hour summary"}
+          </button>
+        </div>
         <Map
           center={position}
           zoom={this.state.zoom}
