@@ -9,6 +9,8 @@ const port = process.env.PORT || 4001;
 const index = require("./routes/index");
 const app = express();
 
+let historical = [];
+let currentData = [];
 const getData = async () => {
   return await axios.get(citybikeurl);
 };
@@ -35,8 +37,19 @@ io.on("connection", (socket) => {
 
 cron.schedule("*/5 * * * * *", function () {
   getData()
-    .then((res) => io.emit("getMiamiAvailability", res.data))
+    .then((res) => {
+      currentData = res.data;
+      io.emit("getMiamiAvailability", res.data);
+    })
     .catch((err) => console.error(err));
+});
+
+cron.schedule("*/5 * * * *", function () {
+  if (historical.length >= 2016) {
+    historical.shift();
+  }
+  historical.push(currentData);
+  io.emit("getHistoricalAvailability", historical);
 });
 
 server.listen(port, () => console.log(`Listening on port ${port}`));
