@@ -13,6 +13,7 @@ class App extends Component {
       lat: 25.808681,
       lng: -80.191788,
       zoom: 12,
+      historical: false,
     };
   }
   componentDidMount() {
@@ -22,6 +23,10 @@ class App extends Component {
     socket.on("getMiamiAvailability", (data) => {
       this.setState({ response: data });
       console.log(data.network.stations);
+    });
+    socket.on("getHistoricalAvailability", (data) => {
+      this.setState({ historical: data });
+      console.log(data);
     });
   }
   render() {
@@ -54,7 +59,7 @@ class App extends Component {
               <Marker
                 position={[latitude, longitude]}
                 key={id}
-                icon={iconStation(this.state.zoom)}
+                icon={iconStation(this.state.zoom, free_bikes)}
               >
                 <Popup>
                   {name} <br />
