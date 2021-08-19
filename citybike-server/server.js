@@ -10,7 +10,7 @@ const index = require("./routes/index");
 const app = express();
 
 let historical = [];
-let currentData = [];
+let currentData = false;
 const getData = async () => {
   return await axios.get(citybikeurl);
 };
@@ -27,7 +27,10 @@ io.on("connection", (socket) => {
   console.log("New connection " + socketId + " from " + clientIp);
   socket.on("ready", function () {
     getData()
-      .then((res) => io.emit("getMiamiAvailability", res.data))
+      .then((res) => {
+        io.emit("getMiamiAvailability", res.data);
+        io.emit("getHistoricalAvailability", [{ data: res.data, timestamp: new Date().toUTCString() }]);
+      })
       .catch((err) => console.error(err));
   });
   socket.on("disconnect", () => {
@@ -36,6 +39,7 @@ io.on("connection", (socket) => {
 });
 
 cron.schedule("*/5 * * * * *", function () {
+  //gets new data every 5 seconds
   getData()
     .then((res) => {
       currentData = res.data;
@@ -45,10 +49,14 @@ cron.schedule("*/5 * * * * *", function () {
 });
 
 cron.schedule("*/5 * * * *", function () {
-  if (historical.length >= 2016) {
-    historical.shift();
+  //12 hour history of availability every 5 minutes
+  if (currentData) {
+    if (historical.length >= 144) {
+      //removes oldest item if array filled for 12 hours already
+      historical.shift();
+    }
+    historical.push({ data: currentData, timestamp: new Date().toUTCString() });
   }
-  historical.push(currentData);
   io.emit("getHistoricalAvailability", historical);
 });
 
